@@ -1,15 +1,8 @@
 name: main CI
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
-  # add a cron job to run every month -- this project is not very active, at least ensure there's a valid CI build every month
-  # this is also useful to check if something breaks e.g. due to infrastructure changes (e.g. Ubuntu/Windows OS)
-  schedule:
-    - cron: '0 0 1 * *'
+  workflow_dispatch:
 
 jobs:
   LinuxBuild:
@@ -33,63 +26,63 @@ jobs:
           path: NetlistViewer/build/linux/NetlistViewer
           if-no-files-found: error
 
-  WindowsBuild:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v2
-      
-      # setup vcpkg & msbuild tools
-      # NOTE: no packages/dependencies are installed at this time -- msbuild will use vcpkg to download&build dependencies
-      #       specified in the vcpkg.json during the build step below. This happens because the VisualStudio solution has
-      #       the 'VcpkgEnableManifest' property set to True
-      - name: Setup a new (or from cache) vcpkg (and does not build any package)
-        uses: lukka/run-vcpkg@v11.5
-        with:
-          # as suggested, we pin the version of "vcpkg" to a specific hash (23rd March 2025) to ensure reproducible builds
-          vcpkgGitCommitId: a76b33254af4092ff45f08ec5adcd9fd06468b43
-      - name: Integrate vcpkg
-        run: vcpkg integrate install
+  #WindowsBuild:
+  #  runs-on: windows-latest
+  #  steps:
+  #    - uses: actions/checkout@v4
+  #    - name: Add msbuild to PATH
+  #      uses: microsoft/setup-msbuild@v2
+  #
+  #    # setup vcpkg & msbuild tools
+  #    # NOTE: no packages/dependencies are installed at this time -- msbuild will use vcpkg to download&build dependencies
+  #    #       specified in the vcpkg.json during the build step below. This happens because the VisualStudio solution has
+  #    #       the 'VcpkgEnableManifest' property set to True
+  #    - name: Setup a new (or from cache) vcpkg (and does not build any package)
+  #      uses: lukka/run-vcpkg@v11.5
+  #      with:
+  #        # as suggested, we pin the version of "vcpkg" to a specific hash (23rd March 2025) to ensure reproducible builds
+  #        vcpkgGitCommitId: a76b33254af4092ff45f08ec5adcd9fd06468b43
+  #    - name: Integrate vcpkg
+  #      run: vcpkg integrate install
 
-      # this is going to be veeeeeeeeeeery long
-      - name: Build dependencies
-        run: vcpkg install
+  #    # this is going to be veeeeeeeeeeery long
+  #    - name: Build dependencies
+  #      run: vcpkg install
 
-      # build
-      - name: Build netlist-viewer
-        run: msbuild NetlistViewer\build\win\netlist_viewer_vs2022.vcxproj -t:rebuild -property:Configuration=Release -property:Platform=x64
+  #    # build
+  #    - name: Build netlist-viewer
+  #      run: msbuild NetlistViewer\build\win\netlist_viewer_vs2022.vcxproj -t:rebuild -property:Configuration=Release -property:Platform=x64
 
-      # save the whole folder containing the binary and DLLs as workflow artifact
-      - name: Save built binaries
-        uses: actions/upload-artifact@v4
-        with:
-          name: NetlistViewer, Windows x86_64
-          path: NetlistViewer/build/win/x64/Release/
-          if-no-files-found: error
+  #    # save the whole folder containing the binary and DLLs as workflow artifact
+  #    - name: Save built binaries
+  #      uses: actions/upload-artifact@v4
+  #      with:
+  #        name: NetlistViewer, Windows x86_64
+  #        path: NetlistViewer/build/win/x64/Release/
+  #        if-no-files-found: error
 
-      # snippet of actions taken from https://github.com/NSIS-Dev/ci-examples/blob/main/.github/workflows/windows-latest.yml
-      - name: Install NSIS
-        run: |
-          iwr -useb get.scoop.sh -outfile 'install.ps1'
-          .\install.ps1 -RunAsAdmin
-          scoop update
-          scoop bucket add extras
-          scoop install nsis
-      - name: Print NSIS version
-        run: makensis -VERSION
-      - name: Print NSIS compile flags
-        run: makensis -HDRINFO
+  #    # snippet of actions taken from https://github.com/NSIS-Dev/ci-examples/blob/main/.github/workflows/windows-latest.yml
+  #    - name: Install NSIS
+  #      run: |
+  #        iwr -useb get.scoop.sh -outfile 'install.ps1'
+  #        .\install.ps1 -RunAsAdmin
+  #        scoop update
+  #        scoop bucket add extras
+  #        scoop install nsis
+  #    - name: Print NSIS version
+  #      run: makensis -VERSION
+  #    - name: Print NSIS compile flags
+  #      run: makensis -HDRINFO
 
-      # now build the actual Windows installer:
-      - name: Run NSIS
-        run: makensis /V2 setup.nsi
-        working-directory: NetlistViewer/distrib
+  #    # now build the actual Windows installer:
+  #    - name: Run NSIS
+  #      run: makensis /V2 setup.nsi
+  #      working-directory: NetlistViewer/distrib
 
-      # save the whole folder containing the binary and DLLs as workflow artifact
-      - name: Save built installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: NetlistViewer, Windows Installer
-          path: NetlistViewer/distrib/NetlistViewer-*-win-installer.exe
-          if-no-files-found: error
+  #    # save the whole folder containing the binary and DLLs as workflow artifact
+  #    - name: Save built installer
+  #      uses: actions/upload-artifact@v4
+  #      with:
+  #        name: NetlistViewer, Windows Installer
+  #        path: NetlistViewer/distrib/NetlistViewer-*-win-installer.exe
+  #        if-no-files-found: error
